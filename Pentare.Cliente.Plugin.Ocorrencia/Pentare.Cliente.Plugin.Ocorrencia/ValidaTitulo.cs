@@ -1,7 +1,6 @@
 ﻿
 using Microsoft.Xrm.Sdk;
 using System;
-using System.Text.RegularExpressions;
 
 namespace Pentare.Cliente.Plugin.Ocorrencia
 {
@@ -36,23 +35,21 @@ namespace Pentare.Cliente.Plugin.Ocorrencia
                         "Erro de validação: O título da ocorrência é obrigatório e não pode conter apenas espaços. " +
                         "Por favor, preencha um título para a ocorrência");
                     }
-
-                    string origemCadastro = targetEntity.GetAttributeValue<string>("ptr_origemcadastro");
                     
                     targetEntity["ptr_origemcadastro"] = "Plugin Dynamics 365";
 
                     tracingService.Trace("Campo 'ptr_origemcadastro' preenchido com sucesso.");
 
                 }
-                else
-                {
-                    tracingService.Trace("Mensagem diferente de Create");
-                }
+            }
+            catch (InvalidPluginExecutionException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                tracingService.Trace($"Erro capturado: {ex.ToString()}");
-                throw new InvalidPluginExecutionException($"Erro no plugin: {ex.Message}", ex);
+                tracingService.Trace($"Erro capturado: {ex}");
+                throw new InvalidPluginExecutionException($"Erro ao processar ocorrência.", ex);
             }
         }
     }
