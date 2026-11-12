@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Pentare.Treinamento.Plugin.Ocorrencia</name>
+    </assembly>
+    <members>
+        <member name="T:Pentare.Treinamento.Plugin.Ocorrencia.RegraDistribuicao">
+             <summary>
+             Plug-in responsável por distribuir automaticamente as ocorrências
+             (Cases) entre equipes, conforme as regras cadastradas no Dataverse.
+            
+             A distribuição considera:
+             - Categoria da ocorrência;
+             - Prioridade da ocorrência;
+             - Indicador VIP da conta associada ao cliente.
+            
+             Antes de atribuir a ocorrência, verifica se a equipe responsável
+             possui a validação administrativa de permissão de leitura.
+             </summary>
+        </member>
+        <member name="M:Pentare.Treinamento.Plugin.Ocorrencia.RegraDistribuicao.Execute(System.IServiceProvider)">
+            <summary>
+            Ponto de entrada da execução do plug-in.
+            Recupera os serviços do Dataverse, valida o contexto da execução
+            e inicia o processamento da regra de distribuição.
+            </summary>
+            <param name="serviceProvider">
+            Provedor de serviços disponibilizado pelo ambiente do Dataverse.
+            </param>
+        </member>
+        <member name="M:Pentare.Treinamento.Plugin.Ocorrencia.RegraDistribuicao.ProcessarRegraDistribuicao(Microsoft.Xrm.Sdk.IOrganizationService,Microsoft.Xrm.Sdk.ITracingService,Microsoft.Xrm.Sdk.Entity,Microsoft.Xrm.Sdk.OptionSetValue,Microsoft.Xrm.Sdk.OptionSetValue,System.Boolean)">
+             <summary>
+             Consulta as regras de distribuição cadastradas e identifica
+             a equipe responsável pela ocorrência.
+            
+             A combinação utilizada na pesquisa considera categoria,
+             prioridade, indicador VIP e situação ativa da regra.
+             </summary>
+             <param name="service">Serviço de acesso ao Dataverse.</param>
+             <param name="tracingService">Serviço de rastreamento do plug-in.</param>
+             <param name="targetEntity">Ocorrência que está sendo criada.</param>
+             <param name="categoriaOcorrencia">Categoria informada na ocorrência.</param>
+             <param name="prioridadeOcorrencia">Prioridade informada na ocorrência.</param>
+             <param name="vipCliente">Indica se o cliente é VIP.</param>
+        </member>
+        <member name="M:Pentare.Treinamento.Plugin.Ocorrencia.RegraDistribuicao.ResolveContaCliente(Microsoft.Xrm.Sdk.IOrganizationService,Microsoft.Xrm.Sdk.ITracingService,Microsoft.Xrm.Sdk.EntityReference)">
+             <summary>
+             Identifica a conta associada ao cliente informado na ocorrência.
+            
+             Se o cliente for uma conta, retorna a própria referência.
+             Se for um contato, consulta o campo parentcustomerid e retorna
+             a conta associada, quando existente.
+             </summary>
+             <param name="service">Serviço de acesso ao Dataverse.</param>
+             <param name="tracingService">Serviço de rastreamento do plug-in.</param>
+             <param name="clienteRef">Referência do cliente da ocorrência.</param>
+             <returns>
+             Referência da conta associada ou null quando não for possível
+             determinar uma conta válida.
+             </returns>
+        </member>
+    </members>
+</doc>
