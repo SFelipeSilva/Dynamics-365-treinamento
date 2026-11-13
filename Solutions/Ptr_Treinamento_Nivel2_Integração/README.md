@@ -346,29 +346,6 @@ As falhas da execução da Custom API também devem ser tratadas por meio da con
 
 O identificador da Conta deve ser obtido diretamente do gatilho, para que o tratamento de erro não dependa de uma ação intermediária que possa ter falhado.
 
-## 8. Atualização dos formulários
-
-As atualizações feitas pelo Power Automate são gravadas diretamente no Dataverse. Entretanto, um formulário já aberto pode continuar exibindo os dados anteriores.
-
-Para atualizar a interface, pode ser utilizada uma biblioteca JavaScript na tabela Conta.
-
-A atualização dos dados do formulário é realizada por:
-
-```javascript
-formContext.data.refresh(false);
-```
-
-O parâmetro `false` evita salvar automaticamente as alterações pendentes antes da atualização.
-
-Na implementação de monitoramento considerada para o CEP:
-
-- Intervalo de verificação: 5 segundos.
-- Limite de monitoramento: 5 minutos.
-- Estados finais: Validado, Inválido e Erro.
-- A atualização deve respeitar a existência de alterações não salvas no formulário.
-
-A aplicação desse mecanismo à consulta de CNPJ depende da configuração correspondente na biblioteca e no formulário.
-
 ## 9. Estrutura de status e processamento
 
 | Integração | Status | Significado |
