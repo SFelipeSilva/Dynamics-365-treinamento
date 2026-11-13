@@ -1,3 +1,5 @@
+if (typeof (Pentare) == "undefined") { Pentare = {}; }
+
 /**
  * @namespace Pentare.Caso
  * @description Contém as funções responsáveis pelo gerenciamento do formulário
@@ -17,13 +19,7 @@
  * @property {number} contadorClienteAtual - Identificador incremental utilizado
  * para controlar as requisições de consulta de informações do cliente.
  */
-if (typeof (Pentare) == "undefined") { Pentare = {}; }
-
 Pentare.Caso = {
-    /**
-     * Contexto do formulário atualmente em execução.
-     * @type {Object}
-     */
     formContext: {},
 
     /**
@@ -40,31 +36,11 @@ Pentare.Caso = {
      */
     contadorClienteAtual: 0,
 
-    /**
-     * Evento OnLoad do formulário.
-     *
-     * Recupera o contexto do formulário e registra os eventos OnChange
-     * dos campos Cliente e Título.
-     *
-     * @param {Object} executionContext - Contexto de execução do evento.
-     * @returns {void}
-     */
     OnLoad: function (executionContext) {
         Pentare.Caso.formContext = executionContext.getFormContext();
         Pentare.Caso.OnChange();
     },
 
-    /**
-     * Registra os manipuladores de eventos OnChange dos campos
-     * customerid e title.
-     *
-     * O campo customerid executa as funções de atualização das informações
-     * do cliente e verificação de títulos duplicados.
-     *
-     * O campo title executa a verificação de títulos duplicados.
-     *
-     * @returns {void}
-     */
     OnChange: function () {
         const formContext = Pentare.Caso.formContext;
 
@@ -81,14 +57,6 @@ Pentare.Caso = {
         }
     },
 
-    /**
-     * Evento OnSave do formulário.
-     *
-     * Reservado para implementações de validação executadas durante
-     * a tentativa de salvamento da ocorrência.
-     *
-     * @returns {void}
-     */
     OnSave: function () {
 
     },

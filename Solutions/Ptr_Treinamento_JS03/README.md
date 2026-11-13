@@ -1,427 +1,302 @@
-# Pentare.Caso
+# Pentare.Caso — Gerenciamento de Ocorrências
 
-Biblioteca JavaScript para personalizar o formulário de **Ocorrências
-(Case / `incident`)** em uma aplicação model-driven do Microsoft
-Dynamics 365 / Dataverse.
+Biblioteca JavaScript desenvolvida para personalizar o formulário de Ocorrências (Case/`incident`) no Microsoft Dynamics 365 Customer Service.
 
-A biblioteca utiliza o contexto do formulário (`formContext`), eventos
-`OnChange`, Dataverse Web API e operações assíncronas para apresentar
-informações relacionadas ao cliente e alertar sobre possíveis títulos
-duplicados.
+A solução utiliza a Client API do Dynamics 365 e a Dataverse Web API para automatizar consultas relacionadas ao cliente, apresentar informações sobre ocorrências existentes e identificar possíveis títulos duplicados.
 
-## 1. Funcionalidades
+## 1. Objetivo
 
-### 1.1. Atualização de informações do cliente
+O objetivo da biblioteca é aprimorar a experiência de utilização do formulário de Ocorrências, automatizando consultas e validações durante o preenchimento dos registros.
 
-Quando o campo Cliente (`customerid`) é alterado, a biblioteca:
+As principais funcionalidades são:
 
-1.  Identifica o registro selecionado e seu tipo (`account` ou
-    `contact`).
-2.  Limpa os campos calculados antes de iniciar as consultas.
-3.  Consulta a quantidade de Ocorrências ativas relacionadas ao cliente.
-4.  Consulta a data de criação da Ocorrência ativa mais recente.
-5.  Atualiza os campos do formulário quando as consultas terminam e a
-    resposta ainda corresponde ao cliente selecionado.
+- Consulta automática da quantidade de ocorrências ativas do cliente selecionado.
+- Identificação da data de criação da última ocorrência ativa.
+- Verificação de títulos duplicados para o mesmo cliente.
+- Desconsideração da própria ocorrência durante a verificação de duplicidade.
+- Controle de concorrência entre requisições assíncronas.
+- Apresentação de notificações informativas e de advertência no formulário.
 
-Campos preenchidos:
+## 2. Tecnologias utilizadas
 
-  -----------------------------------------------------------------------
-  Campo lógico                        Finalidade
-  ----------------------------------- -----------------------------------
-  `ptr_qtdcasosativos`                Quantidade de Ocorrências ativas do
-                                      cliente.
+| Tecnologia | Aplicação |
+|---|---|
+| JavaScript (ES6+) | Implementação da lógica de negócio no formulário. |
+| Dynamics 365 Client API | Manipulação de atributos, controles e eventos do formulário. |
+| Dataverse Web API | Consulta de registros da tabela `incident`. |
+| Fetch API | Requisição HTTP para consulta da quantidade de ocorrências. |
+| Xrm.WebApi | Recuperação de registros e paginação de resultados. |
+| JSDoc | Documentação técnica das funções e propriedades. |
 
-  `ptr_ultimocasoem`                  Data de criação da Ocorrência ativa
-                                      mais recente.
-  -----------------------------------------------------------------------
+## 3. Estrutura da biblioteca
 
-A consulta considera registros com `statecode eq 0`.
-
-### 1.2. Verificação de títulos duplicados
-
-Quando o Cliente (`customerid`) ou o Título (`title`) é alterado, a
-biblioteca consulta as Ocorrências ativas do cliente e verifica se
-existe outra Ocorrência com o mesmo título.
-
-A comparação:
-
--   remove espaços em branco no início e no final (`trim`);
--   converte os títulos para letras minúsculas (`toLowerCase`);
--   desconsidera a própria Ocorrência em edição, comparando o GUID do
-    registro atual com o GUID de cada resultado;
--   percorre as páginas retornadas pela Web API usando `nextLink`.
-
-Quando encontra uma duplicidade, apresenta uma notificação `WARNING` no
-formulário. O aviso é informativo e **não bloqueia o salvamento**.
-
-A verificação considera somente Ocorrências ativas e não substitui uma
-validação no servidor. Portanto, não garante unicidade em criações
-realizadas por integrações, importações ou chamadas diretas à API.
-
-## 2. Estrutura da biblioteca
-
-O código está organizado no namespace `Pentare.Caso`.
-
-  ----------------------------------------------------------------------------------------------------------------
-  Propriedade / método                                                         Responsabilidade
-  ---------------------------------------------------------------------------- -----------------------------------
-  `formContext`                                                                Armazena o contexto do formulário
-                                                                               em execução.
-
-  `contadorTituloAtual`                                                        Identifica a requisição mais
-                                                                               recente de verificação de título.
-
-  `contadorClienteAtual`                                                       Identifica a requisição mais
-                                                                               recente de consulta de informações
-                                                                               do cliente.
-
-  `OnLoad(executionContext)`                                                   Obtém o contexto do formulário e
-                                                                               registra os eventos `OnChange`.
-
-  `OnChange()`                                                                 Registra os manipuladores dos
-                                                                               campos Cliente e Título.
-
-  `OnSave()`                                                                   Reservado para futuras validações
-                                                                               no evento de salvamento; atualmente
-                                                                               está vazio.
-
-  `VerificaClienteAtual(contador, idCliente)`                                  Confirma se a consulta do cliente
-                                                                               ainda é válida.
-
-  `trataAlteracaoDeCliente()`                                                  Consulta e atualiza as informações
-                                                                               relacionadas ao cliente.
-
-  `BuscaQtdCasosAtivos(idCliente, customerType)`                               Consulta a quantidade de
-                                                                               Ocorrências ativas.
-
-  `BuscaUltimoCasoAberto(idCliente)`                                           Consulta a data de criação da
-                                                                               Ocorrência ativa mais recente.
-
-  `BuscaTitulos(idCliente)`                                                    Recupera os títulos das Ocorrências
-                                                                               ativas, incluindo páginas
-                                                                               seguintes.
-
-  `VerificaRequisicaoAtual(contadorVerificacao, idCliente, textoComparacao)`   Confirma se a verificação de título
-                                                                               ainda corresponde aos valores
-                                                                               atuais do formulário.
-
-  `VerificarTituloExistente()`                                                 Procura títulos duplicados e
-                                                                               apresenta um aviso.
-  ----------------------------------------------------------------------------------------------------------------
-
-Os métodos assíncronos retornam `Promise` e utilizam `async/await`.
-
-### Documentação do código com JSDoc
-
-As funções e propriedades da biblioteca também possuem comentários no
-padrão **JSDoc**. Essa documentação descreve a finalidade de cada método,
-seus parâmetros, tipos de retorno e comportamento assíncrono.
-
-As principais tags utilizadas são:
-
-- `@namespace`: identifica o namespace `Pentare.Caso`.
-- `@description`: explica a responsabilidade da biblioteca ou do método.
-- `@param`: documenta os parâmetros recebidos, incluindo seus tipos.
-- `@returns`: descreve o valor ou a `Promise` retornada.
-- `@async`: identifica funções assíncronas.
-- `@type`: informa o tipo de uma propriedade.
-- `@throws`: documenta exceções que podem ser propagadas ao chamador.
-
-Exemplo do padrão utilizado:
+A biblioteca utiliza o namespace `Pentare.Caso`, responsável por organizar as funções relacionadas ao formulário de Ocorrências.
 
 ```javascript
-/**
- * Consulta a quantidade de Ocorrências ativas relacionadas a um cliente.
- *
- * @async
- * @param {string} idCliente - GUID do cliente consultado.
- * @param {string} customerType - Tipo do cliente (account ou contact).
- * @returns {Promise<number>} Quantidade de Ocorrências ativas encontradas.
- */
-BuscaQtdCasosAtivos: async function (idCliente, customerType) {
-    // Implementação
-}
+Pentare.Caso = {
+    formContext: {},
+    contadorTituloAtual: 0,
+    contadorClienteAtual: 0,
+
+    OnLoad: function (executionContext) {},
+    OnChange: function () {},
+    OnSave: function () {},
+
+    VerificaClienteAtual: function () {},
+    trataAlteracaoDeCliente: async function () {},
+
+    BuscaQtdCasosAtivos: async function () {},
+    BuscaUltimoCasoAberto: async function () {},
+    BuscaTitulos: async function () {},
+
+    VerificaRequisicaoAtual: function () {},
+    VerificarTituloExistente: async function () {}
+};
 ```
 
-Para gerar um arquivo XML de documentação a partir dos comentários JSDoc,
-é necessário utilizar uma ferramenta de geração compatível com JavaScript;
-a opção de geração XML de documentação do Visual Studio destinada a
-comentários XML de C# não gera automaticamente documentação JSDoc.
+### 3.1. Propriedades
 
+| Propriedade | Descrição |
+|---|---|
+| `formContext` | Armazena o contexto do formulário atualmente em execução. |
+| `contadorTituloAtual` | Identifica a requisição mais recente de verificação de títulos. |
+| `contadorClienteAtual` | Identifica a requisição mais recente de consulta de informações do cliente. |
 
-## 3. Eventos do formulário
+Os contadores são utilizados para controlar a concorrência entre operações assíncronas, evitando que respostas de requisições antigas sobrescrevam informações mais recentes.
 
-A configuração esperada é:
+## 4. Funcionalidades
 
-  Evento     Função                                Campo
-  ---------- ------------------------------------- --------------
-  OnLoad     `Pentare.Caso.OnLoad`                 Formulário
-  OnChange   Registrado pelo método `OnChange()`   `customerid`
-  OnChange   Registrado pelo método `OnChange()`   `title`
+### 4.1. Consulta de informações do cliente
 
-O método `OnLoad` chama `OnChange`, que registra os manipuladores por
-meio de `addOnChange`.
+Quando o campo Cliente (`customerid`) é alterado, a biblioteca executa automaticamente duas consultas:
 
-### Configuração no Dynamics 365
+**Quantidade de ocorrências ativas**
 
-1.  Abra a solução que contém a tabela Ocorrência (`incident`).
-2.  Abra o formulário principal utilizado pela aplicação.
-3.  Na seção de bibliotecas de formulário, adicione o recurso JavaScript
-    que contém `Pentare.Caso`.
-4.  Na seção de eventos do formulário, configure o evento **OnLoad**
-    para chamar `Pentare.Caso.OnLoad`.
-5.  Marque a opção para transmitir o contexto de execução como primeiro
-    parâmetro.
-6.  Salve e publique as alterações.
-7.  Abra uma Ocorrência e teste a alteração dos campos Cliente e Título.
+A função `BuscaQtdCasosAtivos()` consulta a tabela `incident` por meio da Dataverse Web API.
 
-Como os eventos `OnChange` são registrados pelo próprio `OnLoad`, não é
-necessário cadastrar manualmente as funções `trataAlteracaoDeCliente` e
-`VerificarTituloExistente` nos campos, desde que o `OnLoad` esteja
-configurado corretamente.
+Critérios utilizados:
 
-> O método `OnSave` está vazio na implementação atual. Não é necessário
-> registrá-lo enquanto não houver lógica de salvamento a executar.
+- Cliente relacionado ao registro.
+- Ocorrências com `statecode = 0` (ativas).
 
-## 4. Consultas ao Dataverse
+O resultado é apresentado no campo `ptr_qtdcasosativos`.
 
-### 4.1. Quantidade de Ocorrências ativas
+**Data da última ocorrência ativa**
 
-`BuscaQtdCasosAtivos` utiliza `fetch` para chamar o endpoint da
-Dataverse Web API:
+A função `BuscaUltimoCasoAberto()` recupera a data de criação da ocorrência ativa mais recente.
 
-``` text
-/api/data/v9.2/incidents
-```
+A consulta utiliza:
 
-A consulta seleciona `incidentid`, filtra pelo cliente
-(`_customerid_value`) e por `statecode eq 0`, e solicita a contagem com
-`$count=true`.
+- Ordenação por `createdon` em ordem decrescente.
+- Limitação de resultados com `$top=1`.
 
-O total é obtido da propriedade `@odata.count` da resposta JSON. Se a
-propriedade não estiver presente, o método retorna `0`.
+O resultado é apresentado no campo `ptr_ultimocasoem`.
 
-### 4.2. Ocorrência ativa mais recente
+**Comportamento adicional**
 
-`BuscaUltimoCasoAberto` utiliza:
+- Quando nenhum cliente está selecionado, os campos são limpos.
+- São aceitos clientes dos tipos `account` e `contact`.
+- Os campos são limpos antes da realização das consultas.
+- Em caso de falha, uma notificação é apresentada no formulário.
 
--   `$select=createdon`;
--   filtro pelo cliente e por `statecode eq 0`;
--   `$orderby=createdon desc`;
--   `$top=1`.
+### 4.2. Verificação de títulos duplicados
 
-O método retorna a data `createdon` do primeiro resultado ou `null`
-quando não há registros.
+A função `VerificarTituloExistente()` verifica se já existe uma ocorrência ativa com o mesmo título para o cliente selecionado.
 
-### 4.3. Títulos das Ocorrências
+A verificação é executada quando:
 
-`BuscaTitulos` utiliza `Xrm.WebApi.retrieveMultipleRecords` e recupera
-`incidentid` e `title`.
+- O campo Cliente (`customerid`) é alterado.
+- O campo Título (`title`) é alterado.
 
-A consulta percorre todas as páginas enquanto houver `nextLink`,
-acumulando os resultados em um único array. Isso permite comparar o
-título com todos os registros retornados, não apenas com a primeira
-página.
+**Critérios de comparação**
 
-## 5. Controle de concorrência das consultas
+A comparação dos títulos considera:
 
-As consultas são assíncronas. O usuário pode alterar o Cliente ou o
-Título antes de uma consulta anterior terminar. Sem uma proteção, uma
-resposta antiga poderia atualizar o formulário com dados que já não
-correspondem aos valores selecionados.
+- Remoção de espaços em branco no início e no final.
+- Conversão dos caracteres para letras minúsculas.
+- Comparação de igualdade entre os títulos normalizados.
 
-A biblioteca utiliza dois contadores independentes:
+Exemplo:
 
--   `contadorClienteAtual`: controla as consultas iniciadas após
-    alterações no Cliente;
--   `contadorTituloAtual`: controla as verificações iniciadas após
-    alterações no Cliente ou no Título.
+| Título original | Resultado |
+|---|---|
+| `Erro no sistema` | Considerado igual |
+| `ERRO NO SISTEMA` | Considerado igual |
+| `  Erro no sistema  ` | Considerado igual |
+| `Erro no acesso` | Considerado diferente |
 
-Cada execução incrementa seu contador e guarda o valor em uma variável
-local. Depois do `await`, a função de validação compara esse valor com o
-contador global e também confere os valores atuais do formulário.
+A comparação não normaliza espaços internos entre palavras.
 
-Exemplo conceitual:
+**Desconsideração da ocorrência atual**
 
-1.  A consulta A é iniciada com contador `1`.
-2.  O usuário altera o campo e inicia a consulta B, com contador `2`.
-3.  A consulta B termina e pode atualizar o formulário.
-4.  A consulta A termina depois, mas seu contador `1` não corresponde ao
-    contador atual `2`; sua resposta é descartada.
+Durante a edição de uma ocorrência, o identificador do próprio registro é excluído da comparação.
 
-Os contadores não precisam ser zerados no `OnLoad`. Mantê-los
-incrementais evita reutilizar identificadores enquanto operações
-anteriores ainda podem estar em andamento.
+Isso evita que o sistema identifique o título atual como duplicado do próprio registro.
 
-> Os contadores impedem o processamento de respostas obsoletas, mas não
-> cancelam as requisições HTTP já iniciadas.
+**Paginação**
 
-## 6. Notificações do formulário
+A função `BuscaTitulos()` utiliza o mecanismo `nextLink` da Dataverse Web API para recuperar todos os registros retornados pela consulta, evitando limitar a verificação apenas à primeira página.
 
-A biblioteca utiliza `formContext.ui.setFormNotification` para
-apresentar avisos que não devem impedir o salvamento.
+**Notificação**
 
-  ---------------------------------------------------------------------------
-  Identificador               Nível                   Finalidade
-  --------------------------- ----------------------- -----------------------
-  `erro_consulta_casos`       `WARNING`               Falha ao consultar as
-                                                      informações do cliente.
+Quando uma duplicidade é identificada, o formulário apresenta uma notificação do tipo `WARNING`.
 
-  `erro_verificacao_titulo`   `WARNING`               Falha ao verificar
-                                                      títulos duplicados.
+A notificação é informativa e não impede o salvamento do registro.
 
-  `titulo_duplicado`          `WARNING`               Existe outra Ocorrência
-                                                      ativa com o mesmo
-                                                      título para o cliente.
-  ---------------------------------------------------------------------------
+## 5. Controle de concorrência
 
-As notificações são removidas com `formContext.ui.clearFormNotification`
-quando a condição correspondente deixa de ser aplicável ou quando uma
-consulta termina com sucesso, conforme o fluxo implementado.
+As consultas são executadas de forma assíncrona. Portanto, uma requisição iniciada anteriormente pode terminar depois de uma requisição mais recente.
 
-**Importante:** `setFormNotification` não bloqueia o salvamento,
-inclusive quando utilizado com nível `ERROR`. Para impedir o salvamento,
-é necessária uma estratégia de validação própria, como
-`preventDefault()` no evento `OnSave` ou uma validação no servidor. O
-método `control.setNotification`, por sua vez, bloqueia o salvamento
-enquanto a notificação de campo estiver ativa.
+Para evitar inconsistências, a biblioteca utiliza contadores incrementais.
 
-## 7. Tratamento de erros
+### 5.1. Contador de cliente
 
-As consultas assíncronas são executadas dentro de blocos `try/catch`.
+A propriedade `contadorClienteAtual` controla as consultas relacionadas às informações do cliente.
 
-Quando ocorre uma falha:
+A função `VerificaClienteAtual()` verifica:
 
--   a resposta é verificada para garantir que ainda pertence à execução
-    atual;
--   os campos de quantidade de casos e data do último caso são limpos
-    quando a consulta do cliente falha;
--   uma mensagem de aviso é apresentada ao usuário;
--   detalhes técnicos são enviados ao console por `console.error`.
+1. Se o contador da requisição corresponde ao contador atual.
+2. Se existe um cliente selecionado.
+3. Se o identificador do cliente permanece igual ao utilizado na consulta.
 
-A biblioteca não deve apresentar ao usuário detalhes internos da
-resposta HTTP ou da exceção.
+### 5.2. Contador de títulos
 
-## 8. Dependências e permissões
+A propriedade `contadorTituloAtual` controla as consultas de títulos duplicados.
 
-A implementação depende de:
+A função `VerificaRequisicaoAtual()` verifica:
 
--   formulário model-driven da tabela `incident`;
--   campos padrão `customerid` e `title`;
--   campos personalizados `ptr_qtdcasosativos` e `ptr_ultimocasoem`;
--   objeto global `Xrm`;
--   `Xrm.Utility.getGlobalContext().getClientUrl()`;
--   `Xrm.WebApi.retrieveMultipleRecords`;
--   suporte a `fetch`, `Promise`, `async/await` e recursos modernos de
-    JavaScript.
+1. Se o contador da requisição corresponde ao contador atual.
+2. Se existe um cliente selecionado.
+3. Se o identificador do cliente permanece igual.
+4. Se o título atual permanece igual ao título utilizado na consulta.
 
-O usuário que executa a biblioteca precisa ter privilégios de leitura
-sobre Ocorrências e sobre os dados necessários para que o Dataverse
-retorne os registros. A segurança do Dataverse continua sendo aplicada
-às consultas.
+Dessa forma, somente respostas de requisições ainda válidas podem atualizar as notificações do formulário.
+
+## 6. Campos Dataverse utilizados
+
+### Tabela: Ocorrência (`incident`)
+
+| Nome lógico | Tipo de informação | Finalidade |
+|---|---|---|
+| `customerid` | Lookup | Identifica o cliente relacionado à ocorrência. |
+| `title` | Texto | Armazena o título da ocorrência. |
+| `incidentid` | Identificador | Identifica unicamente a ocorrência. |
+| `createdon` | Data e hora | Registra a data de criação da ocorrência. |
+| `statecode` | Status | Identifica se a ocorrência está ativa ou inativa. |
+
+### Tabela: Conta (`account`) / Contato (`contact`)
+
+Os registros dessas tabelas são utilizados como clientes relacionados à ocorrência por meio do campo polimórfico `customerid`.
+
+### Campos personalizados da tabela Ocorrência
+
+| Nome lógico | Finalidade |
+|---|---|
+| `ptr_qtdcasosativos` | Apresenta a quantidade de ocorrências ativas do cliente. |
+| `ptr_ultimocasoem` | Apresenta a data de criação da última ocorrência ativa. |
+
+## 7. Notificações do formulário
+
+A biblioteca utiliza notificações para informar o usuário sobre o resultado das consultas.
+
+| Identificador | Tipo | Descrição |
+|---|---|---|
+| `erro_consulta_casos` | WARNING | Não foi possível consultar as informações do cliente. |
+| `erro_verificacao_titulo` | WARNING | Não foi possível verificar a existência de títulos duplicados. |
+| `titulo_duplicado` | WARNING | Já existe uma ocorrência com o mesmo título para o cliente. |
+
+As notificações são gerenciadas pelos métodos:
+
+- `formContext.ui.setFormNotification()`
+- `formContext.ui.clearFormNotification()`
+
+As notificações são informativas e não bloqueiam o salvamento.
+
+## 8. Configuração no Dynamics 365
+
+### 8.1. Publicação da biblioteca
+
+1. Acesse a solução que contém a tabela Ocorrência.
+2. Adicione ou abra o recurso da Web JavaScript correspondente à biblioteca.
+3. Publique o recurso da Web.
+4. Abra o formulário principal da tabela Ocorrência.
+
+### 8.2. Configuração dos eventos
+
+No editor do formulário, acesse a seção de eventos e configure:
+
+| Evento | Biblioteca | Função | Passar contexto de execução |
+|---|---|---|---|
+| OnLoad | Biblioteca Pentare.Caso | `Pentare.Caso.OnLoad` | Sim |
+
+A função `OnChange` registra automaticamente os eventos dos campos `customerid` e `title`.
+
+Não é necessário registrar individualmente `trataAlteracaoDeCliente` e `VerificarTituloExistente` no formulário, pois o próprio código realiza esse registro.
+
+A função `OnSave` está reservada para futuras implementações de validação e não possui lógica atualmente.
+
+### 8.3. Publicação do formulário
+
+Após configurar os eventos:
+
+1. Salve as alterações.
+2. Publique o formulário.
+3. Abra uma ocorrência para testar as funcionalidades.
 
 ## 9. Cenários de teste
 
-  -----------------------------------------------------------------------
-  Cenário                             Resultado esperado
-  ----------------------------------- -----------------------------------
-  Selecionar uma Conta com            Quantidade e data da Ocorrência
-  Ocorrências ativas                  ativa mais recente preenchidas.
+| Cenário | Resultado esperado |
+|---|---|
+| Selecionar uma Conta como cliente | Consultar ocorrências ativas e atualizar os campos personalizados. |
+| Selecionar um Contato como cliente | Consultar ocorrências ativas e atualizar os campos personalizados. |
+| Remover o cliente | Limpar quantidade de ocorrências e data da última ocorrência. |
+| Selecionar um cliente sem ocorrências ativas | Apresentar quantidade zero e data vazia. |
+| Alterar o cliente durante uma consulta | Ignorar respostas referentes ao cliente anterior. |
+| Informar um título já existente para o cliente | Apresentar notificação de duplicidade. |
+| Informar um título com letras maiúsculas ou espaços nas extremidades | Identificar a duplicidade quando o título normalizado for igual. |
+| Editar uma ocorrência sem alterar seu título | Não identificar o próprio registro como duplicado. |
+| Informar um título inexistente | Não apresentar notificação de duplicidade. |
+| Ocorrer falha na consulta | Apresentar notificação de advertência. |
+| Alterar o título durante uma consulta | Ignorar respostas referentes ao título anterior. |
 
-  Selecionar um Contato com           Informações relacionadas ao Contato
-  Ocorrências ativas                  preenchidas.
+## 10. Tratamento de erros
 
-  Selecionar cliente sem Ocorrências  Quantidade igual a `0` e data do
-  ativas                              último caso vazia.
+As operações assíncronas possuem blocos `try/catch` para tratar falhas durante as consultas.
 
-  Limpar o campo Cliente              Campos calculados limpos e
-                                      notificações de consulta removidas
-                                      conforme a implementação.
+Quando uma consulta falha:
 
-  Alterar rapidamente o Cliente       Somente a resposta referente ao
-                                      cliente atual pode atualizar os
-                                      campos.
+- O erro é registrado no console por meio de `console.error()`.
+- Os campos relacionados à consulta do cliente são limpos quando aplicável.
+- Uma notificação é apresentada ao usuário.
+- Respostas de requisições obsoletas são ignoradas.
 
-  Informar título já utilizado em     Aviso de duplicidade apresentado;
-  outra Ocorrência ativa do mesmo     salvamento permitido.
-  cliente                             
+As mensagens de erro são apresentadas de maneira simplificada, evitando expor detalhes técnicos ao usuário final.
 
-  Informar título utilizado apenas    Nenhum aviso de duplicidade.
-  por outro cliente                   
+## 11. Considerações técnicas
 
-  Informar título com diferenças de   Títulos são considerados
-  maiúsculas/minúsculas               equivalentes.
+- A biblioteca depende do contexto de execução de um formulário Model-Driven.
+- Os campos utilizados precisam estar disponíveis no formulário.
+- O usuário precisa possuir as permissões necessárias para consultar os registros envolvidos.
+- As consultas consideram somente ocorrências ativas.
+- A verificação de títulos duplicados é uma validação realizada no cliente e não representa uma restrição de unicidade no Dataverse.
+- A verificação JavaScript não impede duplicidades criadas por integrações, importações ou outras aplicações.
+- Os contadores controlam a validade das respostas, mas não cancelam as requisições HTTP em andamento.
+- A função `BuscaQtdCasosAtivos()` utiliza a versão `v9.2` da Dataverse Web API.
 
-  Informar título com espaços no      Espaços nas extremidades são
-  início ou no final                  desconsiderados.
+## 13. Documentação técnica
 
-  Editar uma Ocorrência sem alterar   O próprio registro não é
-  seu título                          considerado duplicidade.
+As funções e propriedades da biblioteca são documentadas utilizando o padrão JSDoc.
 
-  Alterar rapidamente o título        Somente a verificação referente ao
-                                      título atual pode apresentar
-                                      resultado.
+Para gerar documentação HTML automaticamente, é possível utilizar o JSDoc com a configuração apropriada do projeto.
 
-  Cliente sem Ocorrências na primeira Consulta de títulos termina sem
-  página                              duplicidade, após percorrer as
-                                      páginas disponíveis.
+Referência: https://jsdoc.app/
 
-  Falha na consulta                   Aviso apresentado e erro registrado
-                                      no console.
-  -----------------------------------------------------------------------
+---
 
-## 10. Pontos de atenção e melhorias futuras
+**Projeto:** Pentare.Caso
 
-Os itens abaixo são observações sobre a implementação atual e possíveis
-evoluções; não representam funcionalidades já implementadas.
+**Plataforma:** Microsoft Dynamics 365 / Microsoft Dataverse
 
-1.  **Parâmetro `customerType`:** é recebido por `BuscaQtdCasosAtivos`,
-    mas não é utilizado no corpo da função. Pode ser removido da
-    assinatura e da chamada, caso não haja intenção de utilizá-lo.
-2.  **Limpeza de aviso ao apagar o título:** em
-    `VerificarTituloExistente`, a função retorna quando o título está
-    vazio antes de limpar `titulo_duplicado`. Na implementação atual,
-    isso pode manter um aviso anterior visível depois que o título for
-    apagado. Mova a limpeza da notificação para antes dessa validação.
-3.  **Validação de duplicidade no servidor:** a verificação JavaScript é
-    informativa e sujeita a concorrência. Se a regra precisar ser
-    obrigatória para todas as origens de gravação, implemente também uma
-    validação no Dataverse.
-4.  **Cancelamento de requisições:** os contadores descartam respostas
-    obsoletas, mas não cancelam a operação de rede. Caso isso seja
-    necessário, avalie `AbortController` para chamadas compatíveis.
-5.  **Registro repetido de eventos:** se o `OnLoad` puder ser executado
-    mais de uma vez na mesma instância de formulário, avalie evitar o
-    registro duplicado de manipuladores `OnChange`.
+**Linguagem:** JavaScript
 
-## 11. Manutenção e publicação
-
-Após modificar o JavaScript:
-
-1.  Salve o arquivo.
-2.  Atualize o recurso Web JavaScript na solução, quando aplicável.
-3.  Publique as personalizações.
-4.  Atualize o formulário e teste os cenários desta documentação.
-5.  Se o navegador continuar utilizando uma versão anterior do script,
-    faça uma atualização forçada da página (por exemplo, `Ctrl + F5`).
-
-Mantenha os nomes lógicos dos campos, identificadores de notificação e
-nomes das funções sincronizados entre o código, a configuração do
-formulário e esta documentação.
-
-------------------------------------------------------------------------
-
-## 12. Resumo
-
-A biblioteca `Pentare.Caso` complementa o formulário de Ocorrências do
-Dynamics 365 com consultas relacionadas ao cliente e verificação de
-títulos duplicados.
-
-O controle por contadores protege a interface contra respostas
-assíncronas obsoletas. As notificações de formulário comunicam falhas e
-possíveis duplicidades sem impedir o salvamento. Os comentários JSDoc
-complementam esta documentação ao descrever diretamente as funções,
-parâmetros e retornos no código-fonte. A lógica permanece no lado do
-cliente e deve ser complementada por validações no servidor quando uma
-regra de negócio precisar ser garantida para todas as formas de criação
-e atualização de registros.
+**Componente:** Biblioteca de scripts do formulário de Ocorrências
